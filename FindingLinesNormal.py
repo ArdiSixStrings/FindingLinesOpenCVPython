@@ -84,6 +84,19 @@ def region_of_interest(image): #Mencari area jalan
     return masked_image
 
 
+def birdEye(image):
+    IMAGE_H = 720
+    IMAGE_W = 1280
+
+    src = np.float32([[0, 230], [0,0],[0,0], [0,2650]])
+    dst = np.float32([[569, IMAGE_H], [711, IMAGE_H], [0, 0], [IMAGE_W, 0]])
+    M = cv2.getPerspectiveTransform(src, dst) # The transformation matrix
+    Minv = cv2.getPerspectiveTransform(dst, src) # Inverse transformation
+
+    warped_img = cv2.warpPerspective(image, M, (IMAGE_W, IMAGE_H)) # Image warping
+
+    return warped_img
+
 
 cap = cv2.VideoCapture("MyVideo.mp4") #Tampilkan Video
 #net=cv2.dnn.readNetFromCaffe(args["prototxt"],args["model"])
@@ -91,6 +104,13 @@ cap = cv2.VideoCapture("MyVideo.mp4") #Tampilkan Video
 print("load model....")
 while(cap.isOpened()):
     _, frame = cap.read()
+    # bird_eye=birdEye(frame)
+    # canny_bird=canny(bird_eye)
+    lines_bird=cv2.HoughLinesP(canny_bird, 2, np.pi/180, 100, np.array([]), minLineLength=40,maxLineGap=10) #Kita cari lines nya dengan metode Hough Transform
+    line_image_bird=display_lines(bird_eye,lines_bird)
+    combo_birds=cv2.addWeighted(bird_eye, 0.8, line_image_bird, 1, 1)
+
+
     canny_image = canny(frame) #Process pertama 
     cropped_canny = region_of_interest(canny_image) #Setelah dapat informasi lalu di cari area nya yg sudah di ukur sebelumnya
     lines = cv2.HoughLinesP(cropped_canny, 2, np.pi/180, 100, np.array([]), minLineLength=40,maxLineGap=10) #Kita cari lines nya dengan metode Hough Transform
@@ -99,7 +119,9 @@ while(cap.isOpened()):
     combo_image = cv2.addWeighted(frame, 0.8, line_image, 1, 1) #Kita tambah weight agar terlihat jelas garis nya
     frame_resized=cv2.resize(combo_image,(1200,720)) #Kita resize video agar tidak melebihi ukuran layar
 
+    #cv2.imshow('Test',bird_eye)
     cv2.imshow("result", combo_image) #Tampilkan hasilnya
+    
  
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break #Jika menekan tombol q artinya keluar dari program
